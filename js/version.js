@@ -1,6 +1,15 @@
 // RING JUMP DELUXE - version & changelog
-window.RINGJUMP_VERSION = "0.5.1";
+window.RINGJUMP_VERSION = "0.5.2";
 window.RINGJUMP_CHANGELOG = [
+  {
+    v: "0.5.2",
+    date: "2026-09-13",
+    items: [
+      "天井・床を目に見える岩の地形として表示。触れたら即アウトの境界がひと目でわかるように。",
+      "輪をくぐる際の判定を緩和(際どいニアミスでも通過しやすく調整)。",
+      "動く輪の移動速度を少し遅くして反応しやすく調整。",
+    ],
+  },
   {
     v: "0.5.1",
     date: "2026-09-13",

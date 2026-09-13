@@ -52,8 +52,10 @@
   function sfxHit(){ beep(150, 0.35, "sawtooth", 0.28, 0, 40); }
 
   // ---------- constants ----------
-  const DEATH_TOP = 6;               // touching the very top = game over
-  const DEATH_BOTTOM = LH - 6;       // touching the very bottom = game over
+  const CEILING_H = 40;               // visible rocky ceiling band
+  const FLOOR_H = 54;                 // visible rocky floor band
+  const DEATH_TOP = CEILING_H;        // touching the ceiling = game over
+  const DEATH_BOTTOM = LH - FLOOR_H;  // touching the floor = game over
   const BALL_X = 140;
   const BALL_R = 22;
   const DEFAULT_GRAVITY = 1500;      // px/s^2
@@ -205,6 +207,20 @@
   }
   initBricks();
 
+  // jagged rock teeth for the ceiling/floor hazard bands (purely decorative,
+  // never reach past the actual DEATH_TOP/DEATH_BOTTOM collision line)
+  function buildTeeth(){
+    const teeth = [];
+    let x = -20;
+    while (x < LW + 20){
+      teeth.push({ x, h: 6 + Math.random()*20 });
+      x += 20 + Math.random()*22;
+    }
+    return teeth;
+  }
+  const CEIL_TEETH = buildTeeth();
+  const FLOOR_TEETH = buildTeeth();
+
   function resetGame(){
     ball = { y: LH/2, vy: 0 };
     rings = [];
@@ -276,7 +292,7 @@
       tilt: isMoving ? (rng()<0.5 ? -1 : 1) * (18 + rng()*10) * Math.PI/180 : 0,
       moving: isMoving,
       moveAmp: Math.max(0, moveAmp),
-      moveSpeed: 1.1 + rng()*0.9,
+      moveSpeed: 0.7 + rng()*0.5,
       movePhase: rng()*Math.PI*2,
       flameSeed: rng()*100,
     });
@@ -800,7 +816,7 @@
       if (!r.passed && wasRight && r.x < BALL_X){
         r.passed = true;
         const off = Math.abs(ball.y - y);
-        if (off > r.innerR - BALL_R*0.35){
+        if (off > r.innerR - BALL_R*0.1 + 6){
           if (!admin.invincible){
             gameOver();
           }
@@ -866,6 +882,44 @@
       ctx.fill(); ctx.stroke();
       ctx.restore();
     }
+
+    drawHazardBand(CEIL_TEETH, "ceil");
+    drawHazardBand(FLOOR_TEETH, "floor");
+  }
+
+  function drawHazardBand(teeth, kind){
+    const isCeil = kind === "ceil";
+    const rg = ctx.createLinearGradient(0, isCeil?0:DEATH_BOTTOM, 0, isCeil?DEATH_TOP:LH);
+    if (isCeil){
+      rg.addColorStop(0, "#4a372a"); rg.addColorStop(1, "#2c1e16");
+    } else {
+      rg.addColorStop(0, "#2c1e16"); rg.addColorStop(1, "#1c130d");
+    }
+    ctx.beginPath();
+    if (isCeil){
+      ctx.moveTo(-20, 0);
+      for (const t of teeth) ctx.lineTo(t.x, DEATH_TOP - t.h);
+      ctx.lineTo(LW+20, 0);
+      ctx.closePath();
+    } else {
+      ctx.moveTo(-20, LH);
+      for (const t of teeth) ctx.lineTo(t.x, DEATH_BOTTOM + t.h);
+      ctx.lineTo(LW+20, LH);
+      ctx.closePath();
+    }
+    ctx.fillStyle = rg;
+    ctx.fill();
+
+    // danger glow exactly on the death line
+    const lineY = isCeil ? DEATH_TOP : DEATH_BOTTOM;
+    const glow = ctx.createLinearGradient(0, lineY-10, 0, lineY+10);
+    glow.addColorStop(0, "rgba(255,120,40,0)");
+    glow.addColorStop(0.5, "rgba(255,140,50,.85)");
+    glow.addColorStop(1, "rgba(255,120,40,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, lineY-10, LW, 20);
+    ctx.fillStyle = "rgba(255,190,110,.95)";
+    ctx.fillRect(0, lineY - (isCeil?2:1), LW, 2);
   }
   function roundRect(x,y,w,h,r){
     ctx.beginPath();
