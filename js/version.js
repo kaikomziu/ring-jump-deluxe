@@ -1,6 +1,15 @@
 // RING JUMP DELUXE - version & changelog
-window.RINGJUMP_VERSION = "0.3.0";
+window.RINGJUMP_VERSION = "0.4.0";
 window.RINGJUMP_CHANGELOG = [
+  {
+    v: "0.4.0",
+    date: "2026-09-13",
+    items: [
+      "スキン・実績システムを追加。タイトル画面から「スキン」「実績」を選べる。",
+      "スキンは条件(スコア/累計プレイ/SWISH連続/対戦勝利など)を満たすと解放され、通常プレイでも変更できる。",
+      "実績36種を実装。達成すると画面上部にトースト通知が出る。",
+    ],
+  },
   {
     v: "0.3.0",
     date: "2026-09-13",
