@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RING JUMP DELUXE - 輪くぐりジャンプ</title>
+<meta name="description" content="自分はボール。タップで羽ばたき、放っておくと落ちていく。迫りくる輪の穴だけをくぐり抜けろ！フラッピーバード方式のシンプル操作ハイスコア挑戦ゲーム。">
+<link rel="canonical" href="https://kaikomziu.github.io/ring-jump-deluxe/">
+<meta property="og:title" content="RING JUMP DELUXE - 輪くぐりジャンプ">
+<meta property="og:description" content="タップで羽ばたき、迫りくる輪をくぐり抜けろ！フラッピーバード方式のハイスコア挑戦ゲーム。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kaikomziu.github.io/ring-jump-deluxe/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2244%22 fill=%22%23ff7a3d%22/></svg>">
+<style>
+  :root{
+    --sky1:#8ad9ff; --sky2:#e6f9ff; --ground1:#7ac95e; --ground2:#5aa845;
+    --ink:#1c2b3a; --panel:rgba(20,30,45,.86); --accent:#ffcf4d; --accent2:#ff7a3d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    background:#0c1622; color:#fff; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:none;
+  }
+  #wrap{position:relative; width:100vw; height:100dvh; max-width:520px; max-height:920px;
+    background:#000; overflow:hidden; box-shadow:0 0 60px rgba(0,0,0,.6)}
+  canvas{display:block; width:100%; height:100%}
+
+  .overlay{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; padding:28px;
+    text-align:center; background:linear-gradient(180deg,rgba(12,22,34,.6),rgba(12,22,34,.9));
+    backdrop-filter:blur(2px);
+  }
+  .hidden{display:none!important}
+  h1{font-size:clamp(26px,8vw,42px); letter-spacing:.02em; line-height:1.15;
+    color:#fff; text-shadow:0 3px 0 #b5451a, 0 6px 18px rgba(0,0,0,.5)}
+  h1 small{display:block; font-size:.38em; letter-spacing:.28em; color:var(--accent); margin-top:8px}
+  p.lead{font-size:14px; line-height:1.9; color:#dff3ff; max-width:340px}
+  .btn{
+    margin-top:4px; border:none; cursor:pointer;
+    font:700 20px/1 inherit; color:#3a2410;
+    background:linear-gradient(180deg,#ffe08a,#ffc21f);
+    padding:16px 44px; border-radius:999px;
+    box-shadow:0 6px 0 #b5851a, 0 10px 24px rgba(0,0,0,.4);
+    transition:transform .08s, box-shadow .08s;
+  }
+  .btn:active{transform:translateY(4px); box-shadow:0 2px 0 #b5851a, 0 4px 12px rgba(0,0,0,.4)}
+  .btn.sub{
+    background:linear-gradient(180deg,#7fd8ff,#3fa9e0); color:#0a2d40;
+    box-shadow:0 6px 0 #1f7aa8, 0 10px 24px rgba(0,0,0,.4);
+  }
+  .btn.sub:active{box-shadow:0 2px 0 #1f7aa8, 0 4px 12px rgba(0,0,0,.4)}
+  .keys{font-size:12px; color:#b9d3e0; line-height:1.8}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; font-size:12px; color:#dff3ff}
+  .legend span{display:flex; align-items:center; gap:5px}
+  .legend i{font-size:18px; font-style:normal}
+
+  .hud{
+    position:absolute; top:0; left:0; right:0; padding:14px 16px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    font-weight:700; text-shadow:0 2px 6px rgba(0,0,0,.6); pointer-events:none;
+  }
+  .hud .right{text-align:right}
+  .hud .big{font-size:30px; color:var(--accent)}
+  .hud .sub{font-size:12px; color:#dff3ff; font-weight:600}
+
+  .result-stat{font-size:15px; color:#dff3ff; line-height:2}
+  .result-stat b{color:var(--accent); font-size:22px}
+  .rank{font-size:clamp(20px,6vw,30px); color:#fff; margin:2px 0}
+  .newbest{color:var(--accent2); font-weight:700; font-size:13px; animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+
+  .btnrow{display:flex; gap:12px; margin-top:6px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <div class="hud hidden" id="hud">
+    <div>
+      <div class="big"><span id="score">0</span></div>
+      <div class="sub">くぐった輪</div>
+    </div>
+    <div class="right">
+      <div class="big" id="bestBig">0</div>
+      <div class="sub">ベスト</div>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="overlay" id="titleScreen">
+    <h1>RING JUMP<small>輪くぐりジャンプ DELUXE</small></h1>
+    <p class="lead">キミは飛び跳ねるボール。<br>
+      タップ／クリック／スペースキーで羽ばたいて浮き、<br>放っておくと落ちていく。<br>
+      迫りくる輪の穴だけをくぐり抜けろ！</p>
+    <div class="legend">
+      <span><i>🔴</i>キミ(ボール)</span>
+      <span><i>⭕</i>輪＝穴をくぐる</span>
+      <span><i>🟥</i>枠・天井・地面はアウト</span>
+    </div>
+    <button class="btn" id="startBtn">スタート</button>
+    <div class="keys">PC: スペース／↑／クリックで連打して羽ばたく<br>スマホ: 画面を連打してタップで羽ばたく<br>輪のど真ん中を通すと「SWISH」でボーナス点！</div>
+  </div>
+
+  <!-- Result -->
+  <div class="overlay hidden" id="resultScreen">
+    <h1 id="resultTitle">GAME OVER</h1>
+    <div class="rank" id="resultRank"></div>
+    <div class="result-stat">くぐった輪：<b id="finalScore">0</b> 個<br>ベスト：<b id="finalBest">0</b> 個</div>
+    <div id="newBestTag" class="newbest hidden">🎉 ベスト更新！</div>
+    <div class="btnrow">
+      <button class="btn" id="retryBtn">もう一度</button>
+      <button class="btn sub" id="titleBtn">タイトルへ</button>
+    </div>
+  </div>
+
+</div>
+<script src="js/version.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
