@@ -74,6 +74,47 @@
   @keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
 
   .btnrow{display:flex; gap:12px; margin-top:6px}
+
+  /* ---- admin ---- */
+  #adminPassScreen input{
+    font:600 20px/1 monospace; letter-spacing:.15em; text-align:center;
+    padding:12px 16px; border-radius:10px; border:2px solid var(--accent);
+    background:rgba(0,0,0,.35); color:#fff; width:220px; outline:none;
+  }
+  #adminPassScreen.shake input{animation:shakeX .4s}
+  @keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+  #adminPassMsg{font-size:12px; color:#ff8a8a; min-height:16px}
+
+  #adminGearBtn{
+    position:absolute; right:10px; bottom:10px; width:38px; height:38px;
+    border-radius:50%; border:2px solid rgba(255,207,77,.6); background:rgba(10,16,26,.55);
+    color:var(--accent); font-size:17px; cursor:pointer; z-index:40; line-height:1;
+  }
+  #adminPanel{
+    position:absolute; right:8px; top:8px; width:250px; max-height:calc(100% - 16px);
+    overflow-y:auto; background:rgba(8,14,22,.94); border:2px solid var(--accent);
+    border-radius:14px; padding:12px; font-size:12px; color:#dff3ff; z-index:50;
+    text-align:left; box-shadow:0 8px 30px rgba(0,0,0,.5);
+  }
+  #adminPanel h3{font-size:12px; color:var(--accent); margin:10px 0 6px; letter-spacing:.05em}
+  #adminPanel h3:first-child{margin-top:0}
+  #adminPanel .row{display:flex; align-items:center; justify-content:space-between; gap:6px; margin:6px 0; white-space:nowrap}
+  #adminPanel .sliderRow{display:block; margin:8px 0}
+  #adminPanel .sliderRow .label{display:flex; justify-content:space-between; margin-bottom:3px}
+  #adminPanel .sliderRow .val{color:var(--accent); font-variant-numeric:tabular-nums}
+  #adminPanel .sliderRow input[type=range]{width:100%; accent-color:var(--accent)}
+  #adminPanel input[type=number]{width:64px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:6px; padding:2px 4px}
+  #adminSkins{display:flex; flex-wrap:wrap; gap:5px}
+  #adminSkins button{
+    font-size:19px; padding:4px 7px; border-radius:8px; border:2px solid transparent;
+    background:rgba(255,255,255,.08); cursor:pointer; line-height:1.2;
+  }
+  #adminSkins button.active{border-color:var(--accent); background:rgba(255,207,77,.25)}
+  #adminPanel .closeBtn{
+    width:100%; margin-top:10px; border:none; cursor:pointer; font:700 13px inherit;
+    color:#3a2410; background:linear-gradient(180deg,#ffe08a,#ffc21f); padding:8px; border-radius:8px;
+  }
+  #adminPanel .toggleRow label{display:flex; align-items:center; gap:6px; cursor:pointer}
 </style>
 </head>
 <body>
@@ -116,6 +157,51 @@
       <button class="btn" id="retryBtn">もう一度</button>
       <button class="btn sub" id="titleBtn">タイトルへ</button>
     </div>
+  </div>
+
+  <!-- Admin password -->
+  <div class="overlay hidden" id="adminPassScreen">
+    <h1 style="font-size:26px">🔒 ADMIN</h1>
+    <p class="lead">パスワードを入力してください</p>
+    <input type="password" id="adminPassInput" autocomplete="off">
+    <div id="adminPassMsg"></div>
+    <div class="btnrow">
+      <button class="btn" id="adminPassOk">決定</button>
+      <button class="btn sub" id="adminPassCancel">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- Admin panel (gear icon reopens once unlocked) -->
+  <button class="hidden" id="adminGearBtn" title="管理者パネル">⚙</button>
+  <div class="hidden" id="adminPanel">
+    <h3>🧑‍🎤 キャラ</h3>
+    <div id="adminSkins"></div>
+
+    <h3>⚔️ チート</h3>
+    <div class="row toggleRow">
+      <label><input type="checkbox" id="adminInvincible"> 無敵モード</label>
+    </div>
+    <div class="row">
+      <span>スコア</span>
+      <input type="number" id="adminScoreInput" value="0" min="0">
+      <button class="btn sub" id="adminScoreApply" style="padding:4px 10px; font-size:11px; margin:0">反映</button>
+    </div>
+
+    <h3>🔧 物理パラメータ</h3>
+    <div class="sliderRow">
+      <div class="label"><span>重力</span><span class="val" id="adminGravityVal"></span></div>
+      <input type="range" id="adminGravity" min="400" max="3000" step="10">
+    </div>
+    <div class="sliderRow">
+      <div class="label"><span>羽ばたき力</span><span class="val" id="adminFlapVal"></span></div>
+      <input type="range" id="adminFlap" min="-900" max="-150" step="10">
+    </div>
+    <div class="sliderRow">
+      <div class="label"><span>速度倍率</span><span class="val" id="adminSpeedMulVal"></span></div>
+      <input type="range" id="adminSpeedMul" min="0.3" max="3" step="0.05">
+    </div>
+    <button class="closeBtn" id="adminResetPhysics">物理をリセット</button>
+    <button class="closeBtn" id="adminPanelClose">閉じる</button>
   </div>
 
 </div>

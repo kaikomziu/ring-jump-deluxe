@@ -1,6 +1,15 @@
 // RING JUMP DELUXE - version & changelog
-window.RINGJUMP_VERSION = "0.1.0";
+window.RINGJUMP_VERSION = "0.2.0";
 window.RINGJUMP_CHANGELOG = [
+  {
+    v: "0.2.0",
+    date: "2026-09-13",
+    items: [
+      "隠し管理者モードを追加。キーボードで「admin」と入力するとパスワード入力欄が出現。",
+      "管理者モードでは、キャラ(ボールの見た目)を7種類から変更・無敵モード・スコア/難易度の直接変更・重力/羽ばたき力/速度倍率の物理パラメータ調整が可能。",
+      "一度解放すると画面右下に⚙アイコンが常駐し、いつでもパネルを再度開ける。",
+    ],
+  },
   {
     v: "0.1.0",
     date: "2026-09-13",
