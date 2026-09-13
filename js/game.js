@@ -107,10 +107,31 @@
   let flapPulse = 0;    // wing-flap animation energy
   let tilt = 0;         // ball body tilt (velocity based)
 
+  // ---------- online versus ----------
+  function mulberry32(seed){
+    let a = seed >>> 0;
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  let mode = "solo"; // solo | online
+  let rng = Math.random;
+  let onlineSession = null;
+  let onlineSendTimer = 0;
+  let matchOver = false;
+  let myFinal = null, peerFinal = null;
+  let peerState = { y: LH/2, score: 0, alive: true };
+
   const els = {
     hud: document.getElementById("hud"),
     score: document.getElementById("score"),
     bestMini: document.getElementById("bestMini"),
+    bestMiniWrap: document.getElementById("bestMiniWrap"),
+    vsHud: document.getElementById("vsHud"),
+    peerScore: document.getElementById("peerScore"),
     pauseBtn: document.getElementById("pauseBtn"),
     titleScreen: document.getElementById("titleScreen"),
     resultScreen: document.getElementById("resultScreen"),
@@ -136,6 +157,26 @@
     achBackBtn: document.getElementById("achBackBtn"),
     achToast: document.getElementById("achToast"),
     achToastName: document.getElementById("achToastName"),
+    onlineBtn: document.getElementById("onlineBtn"),
+    onlineScreen: document.getElementById("onlineScreen"),
+    createRoomBtn: document.getElementById("createRoomBtn"),
+    roomCodeInput: document.getElementById("roomCodeInput"),
+    joinRoomBtn: document.getElementById("joinRoomBtn"),
+    onlineErr: document.getElementById("onlineErr"),
+    onlineBackBtn: document.getElementById("onlineBackBtn"),
+    onlineWaitScreen: document.getElementById("onlineWaitScreen"),
+    onlineWaitTitle: document.getElementById("onlineWaitTitle"),
+    onlineWaitCode: document.getElementById("onlineWaitCode"),
+    onlineWaitSub: document.getElementById("onlineWaitSub"),
+    onlineCancelBtn: document.getElementById("onlineCancelBtn"),
+    countdownScreen: document.getElementById("countdownScreen"),
+    countdownNum: document.getElementById("countdownNum"),
+    onlineResultScreen: document.getElementById("onlineResultScreen"),
+    onlineResultTitle: document.getElementById("onlineResultTitle"),
+    onlineMyScore: document.getElementById("onlineMyScore"),
+    onlineOppScore: document.getElementById("onlineOppScore"),
+    onlineRetryBtn: document.getElementById("onlineRetryBtn"),
+    onlineTitleBtn: document.getElementById("onlineTitleBtn"),
   };
   els.bestMini.textContent = best;
 
@@ -184,15 +225,25 @@
     els.score.textContent = "0";
   }
 
-  function startGame(){
+  function startGame(seed){
     ensureAudio();
+    mode = (typeof seed === "number") ? "online" : "solo";
+    rng = (mode === "online") ? mulberry32(seed) : Math.random;
     resetGame();
     state = "playing";
     els.titleScreen.classList.add("hidden");
     els.resultScreen.classList.add("hidden");
     els.pauseScreen.classList.add("hidden");
+    els.onlineResultScreen.classList.add("hidden");
     els.hud.classList.remove("hidden");
-    els.pauseBtn.classList.remove("hidden");
+    els.pauseBtn.classList.toggle("hidden", mode === "online");
+    els.vsHud.classList.toggle("hidden", mode !== "online");
+    els.bestMiniWrap.classList.toggle("hidden", mode === "online");
+  }
+
+  function hidePlayUI(){
+    els.hud.classList.add("hidden");
+    els.pauseBtn.classList.add("hidden");
   }
 
   function difficultyInnerR(){
@@ -211,10 +262,10 @@
     const margin = 70;
     const minC = DEATH_TOP + innerR + margin;
     const maxC = DEATH_BOTTOM - innerR - margin;
-    const baseY = minC + Math.random() * Math.max(10, maxC - minC);
+    const baseY = minC + rng() * Math.max(10, maxC - minC);
     const hue = [16, 42, 330, 200, 275][rings.length % 5];
-    const moving = score >= 12 && Math.random() < 0.45;
-    const moveAmp = moving ? Math.min(50 + Math.random()*70, baseY - DEATH_TOP - innerR - 10, DEATH_BOTTOM - innerR - 10 - baseY) : 0;
+    const moving = score >= 12 && rng() < 0.45;
+    const moveAmp = moving ? Math.min(50 + rng()*70, baseY - DEATH_TOP - innerR - 10, DEATH_BOTTOM - innerR - 10 - baseY) : 0;
     const isMoving = moving && moveAmp > 15;
     rings.push({
       x: LW + 70,
@@ -222,12 +273,12 @@
       innerR,
       passed: false,
       hue,
-      tilt: isMoving ? (Math.random()<0.5 ? -1 : 1) * (18 + Math.random()*10) * Math.PI/180 : 0,
+      tilt: isMoving ? (rng()<0.5 ? -1 : 1) * (18 + rng()*10) * Math.PI/180 : 0,
       moving: isMoving,
       moveAmp: Math.max(0, moveAmp),
-      moveSpeed: 1.1 + Math.random()*0.9,
-      movePhase: Math.random()*Math.PI*2,
-      flameSeed: Math.random()*100,
+      moveSpeed: 1.1 + rng()*0.9,
+      movePhase: rng()*Math.PI*2,
+      flameSeed: rng()*100,
     });
   }
   function ringY(r){
@@ -258,12 +309,12 @@
   }
 
   function gameOver(){
+    if (mode === "online"){ onlineOnDeath(); return; }
     state = "gameover";
     shake = 1;
     flashRed = 1;
     sfxHit();
-    els.hud.classList.add("hidden");
-    els.pauseBtn.classList.add("hidden");
+    hidePlayUI();
     const isNew = score > best;
     if (isNew){ best = score; localStorage.setItem(BEST_KEY, String(best)); }
     els.bestMini.textContent = best;
@@ -281,6 +332,7 @@
   }
 
   function togglePause(){
+    if (mode === "online") return; // 対戦中は一時停止できない
     if (state === "playing"){
       state = "paused";
       els.pauseScreen.classList.remove("hidden");
@@ -397,6 +449,168 @@
       setTimeout(showNextToast, 350);
     }, 2400);
   }
+
+  // ---------- online versus: matchmaking & resolution ----------
+  function setupOnlineHandlers(){
+    onlineSession.on("peerJoined", ()=>{
+      if (onlineSession.role === "host"){
+        const seed = Math.floor(Math.random()*4294967295);
+        const startAt = Date.now() + 3000;
+        onlineSession.send("start", { seed, startAt });
+        beginCountdownTo(startAt, seed);
+      }
+    });
+    onlineSession.on("peerLeft", ()=>{
+      if (mode === "online" && state === "playing" && !matchOver){
+        matchOver = true;
+        myFinal = { score, survivalTime: elapsed };
+        hidePlayUI();
+        state = "gameover";
+        showOnlineResult(true, score, peerState.score);
+      }
+    });
+    onlineSession.on("start", (data)=>{
+      beginCountdownTo(data.startAt, data.seed);
+    });
+    onlineSession.on("state", (data)=>{
+      peerState.y = data.y;
+      peerState.score = data.score;
+      peerState.alive = data.alive !== false;
+      els.peerScore.textContent = peerState.score;
+    });
+    onlineSession.on("over", (data)=>{
+      peerFinal = data;
+      peerState.score = data.score;
+      peerState.alive = false;
+      els.peerScore.textContent = data.score;
+      if (mode === "online" && state === "playing" && !matchOver){
+        matchOver = true;
+        myFinal = { score, survivalTime: elapsed };
+        hidePlayUI();
+        state = "gameover";
+        showOnlineResult(true, score, data.score);
+      }
+    });
+  }
+
+  function onlineOnDeath(){
+    if (matchOver) return;
+    matchOver = true;
+    const final = { score, survivalTime: elapsed };
+    myFinal = final;
+    const won = !!peerFinal; // peer already reported death earlier -> they died first -> I win
+    shake = 1; flashRed = 1; sfxHit();
+    if (onlineSession) onlineSession.send("over", final);
+    setTimeout(()=>{
+      hidePlayUI();
+      showOnlineResult(won, final.score, peerFinal ? peerFinal.score : peerState.score);
+    }, 550);
+  }
+
+  function showOnlineResult(won, myScore, oppScore){
+    const newlyUnlocked = PROFILE.recordMultiplayer({ won, opponentScore: oppScore });
+    els.onlineResultTitle.textContent = won ? "🏆 WIN!" : "😢 LOSE...";
+    els.onlineMyScore.textContent = myScore;
+    els.onlineOppScore.textContent = oppScore;
+    els.vsHud.classList.add("hidden");
+    els.onlineResultScreen.classList.remove("hidden");
+    queueAchievementToasts(newlyUnlocked);
+  }
+
+  function beginCountdownTo(startAt, seed){
+    els.onlineWaitScreen.classList.add("hidden");
+    els.countdownScreen.classList.remove("hidden");
+    function tick(){
+      const remain = startAt - Date.now();
+      const n = Math.ceil(remain/1000);
+      if (remain <= 0){
+        els.countdownScreen.classList.add("hidden");
+        beginOnlineMatch(seed);
+        return;
+      }
+      els.countdownNum.textContent = n > 0 ? String(n) : "GO!";
+      requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  function beginOnlineMatch(seed){
+    matchOver = false;
+    myFinal = null; peerFinal = null;
+    peerState = { y: LH/2, score: 0, alive: true };
+    onlineSendTimer = 0;
+    els.peerScore.textContent = "0";
+    startGame(seed);
+  }
+
+  function leaveOnlineSession(){
+    if (onlineSession){ onlineSession.leave(); onlineSession = null; }
+  }
+
+  function showOnlineWait(code, isHost){
+    els.onlineScreen.classList.add("hidden");
+    els.onlineWaitCode.textContent = code;
+    els.onlineWaitTitle.textContent = isHost ? "相手を待っています…" : "ホストの開始を待っています…";
+    els.onlineWaitSub.textContent = isHost ? "この5桁のコードを相手に伝えてね" : "";
+    els.onlineWaitScreen.classList.remove("hidden");
+  }
+
+  els.onlineBtn.addEventListener("click", ()=>{
+    els.onlineErr.textContent = "";
+    els.roomCodeInput.value = "";
+    els.titleScreen.classList.add("hidden");
+    els.onlineScreen.classList.remove("hidden");
+  });
+  els.onlineBackBtn.addEventListener("click", ()=>{
+    els.onlineScreen.classList.add("hidden");
+    els.titleScreen.classList.remove("hidden");
+  });
+  els.createRoomBtn.addEventListener("click", async ()=>{
+    els.onlineErr.textContent = "接続中…";
+    try{
+      onlineSession = new window.RJOnlineSession();
+      setupOnlineHandlers();
+      const code = await onlineSession.createRoom();
+      els.onlineErr.textContent = "";
+      showOnlineWait(code, true);
+    }catch(e){
+      els.onlineErr.textContent = "接続に失敗しました。通信環境を確認してください。";
+      leaveOnlineSession();
+    }
+  });
+  els.joinRoomBtn.addEventListener("click", async ()=>{
+    const code = els.roomCodeInput.value.trim();
+    if (code.length < 4){ els.onlineErr.textContent = "コードを入力してください"; return; }
+    els.onlineErr.textContent = "接続中…";
+    try{
+      onlineSession = new window.RJOnlineSession();
+      setupOnlineHandlers();
+      await onlineSession.joinRoom(code);
+      els.onlineErr.textContent = "";
+      showOnlineWait(code.toUpperCase(), false);
+    }catch(e){
+      els.onlineErr.textContent = "部屋が見つかりません。コードを確認してください。";
+      leaveOnlineSession();
+    }
+  });
+  els.onlineCancelBtn.addEventListener("click", ()=>{
+    leaveOnlineSession();
+    els.onlineWaitScreen.classList.add("hidden");
+    els.titleScreen.classList.remove("hidden");
+  });
+  els.onlineTitleBtn.addEventListener("click", ()=>{
+    leaveOnlineSession();
+    mode = "solo";
+    els.onlineResultScreen.classList.add("hidden");
+    els.titleScreen.classList.remove("hidden");
+  });
+  els.onlineRetryBtn.addEventListener("click", ()=>{
+    leaveOnlineSession();
+    mode = "solo";
+    els.onlineResultScreen.classList.add("hidden");
+    els.onlineErr.textContent = "";
+    els.onlineScreen.classList.remove("hidden");
+  });
 
   // ---------- admin UI ----------
   const adminEls = {
@@ -624,6 +838,14 @@
 
     if (shake > 0) shake = Math.max(0, shake - dt*3);
     if (flashRed > 0) flashRed = Math.max(0, flashRed - dt*2.2);
+
+    if (mode === "online" && onlineSession){
+      onlineSendTimer += dt;
+      if (onlineSendTimer >= 0.07){
+        onlineSendTimer = 0;
+        onlineSession.send("state", { y: ball.y, score, alive: true });
+      }
+    }
   }
 
   // ---------- draw ----------
@@ -841,6 +1063,15 @@
     ctx.restore();
   }
 
+  function drawPeerBall(){
+    if (mode !== "online" || !peerState.alive) return;
+    ctx.save();
+    ctx.globalAlpha = 0.42;
+    ctx.translate(BALL_X + 58, peerState.y);
+    drawBallFace(PROFILE.getSkin());
+    ctx.restore();
+  }
+
   function drawParticles(){
     for (const pt of particles){
       const a = 1 - pt.t/pt.life;
@@ -882,6 +1113,7 @@
     for (const r of rings) drawRing(r);
     drawParticles();
     drawPopups();
+    drawPeerBall();
     if (ball) drawBall();
 
     if (flashRed > 0){

@@ -1,6 +1,15 @@
 // RING JUMP DELUXE - version & changelog
-window.RINGJUMP_VERSION = "0.4.0";
+window.RINGJUMP_VERSION = "0.5.0";
 window.RINGJUMP_CHANGELOG = [
+  {
+    v: "0.5.0",
+    date: "2026-09-13",
+    items: [
+      "オンライン対戦を追加。5桁のルームコードを作成/入力して同じ部屋の相手とリアルタイム対戦。",
+      "同じ乱数シードで同時プレイし、同じ輪配置に挑戦。相手のボールも半透明で画面に表示。",
+      "先に脱落した方が負け(生存時間で判定)。対戦結果は実績・スタッツに反映される。",
+    ],
+  },
   {
     v: "0.4.0",
     date: "2026-09-13",

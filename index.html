@@ -86,6 +86,34 @@
   @keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
 
   .btnrow{display:flex; gap:12px; margin-top:6px; flex-wrap:wrap; justify-content:center}
+
+  /* ---- online ---- */
+  #roomCodeInput{
+    font:700 26px/1 monospace; letter-spacing:.3em; text-align:center; text-transform:uppercase;
+    padding:12px 10px; border-radius:10px; border:2px solid var(--accent);
+    background:rgba(0,0,0,.35); color:#fff; width:200px; outline:none;
+  }
+  .roomCodeBig{
+    font:800 44px/1 monospace; letter-spacing:.2em; color:var(--accent);
+    -webkit-text-stroke:2px #241a10; paint-order:stroke fill; margin:6px 0;
+  }
+  .spinner{
+    width:26px; height:26px; border-radius:50%; border:3px solid rgba(255,255,255,.25);
+    border-top-color:var(--accent); animation:spin .8s linear infinite; margin:4px auto;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #onlineErr{font-size:12px; color:#ff8a8a; min-height:16px}
+  .vsHud{
+    position:absolute; left:50%; top:172px; transform:translateX(-50%);
+    font-size:12px; color:#5a4326; font-weight:700; text-align:center; z-index:19;
+  }
+  .vsHud b{color:#c0392b; -webkit-text-stroke:1.2px #241a10; paint-order:stroke fill; font-size:15px}
+  #countdownScreen{
+    background:rgba(12,22,34,.35);
+  }
+  #countdownNum{
+    font:800 110px/1 system-ui; color:#fff; -webkit-text-stroke:4px #241a10; paint-order:stroke fill;
+  }
   .btn.small{padding:10px 18px; font-size:13px; margin-top:0}
 
   /* ---- skins / achievements ---- */
@@ -182,7 +210,8 @@
 
   <div class="hud hidden" id="hud">
     <div class="scoreBig"><span id="score">0</span></div>
-    <div class="bestMiniWrap">ベスト <b id="bestMini">0</b></div>
+    <div class="bestMiniWrap" id="bestMiniWrap">ベスト <b id="bestMini">0</b></div>
+    <div class="vsHud hidden" id="vsHud">相手 <b id="peerScore">0</b></div>
   </div>
   <button class="hidden" id="pauseBtn">⏸</button>
 
@@ -235,6 +264,45 @@
 
   <!-- Achievement unlock toast -->
   <div id="achToast"><span class="icon">🏆</span><div class="txt"><b>実績解除</b><span id="achToastName"></span></div></div>
+
+  <!-- Online: menu (create/join) -->
+  <div class="overlay hidden" id="onlineScreen">
+    <h1 style="font-size:26px">🌐 オンライン対戦</h1>
+    <p class="lead">同じ部屋に入った2人で同時プレイ。<br>先に脱落した方が負けです。</p>
+    <button class="btn" id="createRoomBtn">部屋を作る</button>
+    <p class="lead" style="margin:2px 0">— または —</p>
+    <input id="roomCodeInput" maxlength="5" placeholder="_____" autocomplete="off">
+    <button class="btn sub" id="joinRoomBtn">参加する</button>
+    <div id="onlineErr"></div>
+    <button class="btn sub small" id="onlineBackBtn">もどる</button>
+  </div>
+
+  <!-- Online: waiting for peer / match start -->
+  <div class="overlay hidden" id="onlineWaitScreen">
+    <h1 style="font-size:22px" id="onlineWaitTitle">相手を待っています…</h1>
+    <div class="roomCodeBig" id="onlineWaitCode"></div>
+    <p class="lead" id="onlineWaitSub">この5桁のコードを相手に伝えてね</p>
+    <div class="spinner"></div>
+    <button class="btn sub" id="onlineCancelBtn">キャンセル</button>
+  </div>
+
+  <!-- Online: countdown -->
+  <div class="overlay hidden" id="countdownScreen">
+    <div id="countdownNum">3</div>
+  </div>
+
+  <!-- Online: result -->
+  <div class="overlay hidden" id="onlineResultScreen">
+    <h1 id="onlineResultTitle">WIN!</h1>
+    <div class="result-stat">
+      あなた：<b id="onlineMyScore">0</b> 個くぐった<br>
+      相手：<b id="onlineOppScore">0</b> 個くぐった
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="onlineRetryBtn">もう一度対戦</button>
+      <button class="btn sub" id="onlineTitleBtn">タイトルへ</button>
+    </div>
+  </div>
 
   <!-- Pause -->
   <div class="overlay hidden" id="pauseScreen">
@@ -293,6 +361,8 @@
 </div>
 <script src="js/version.js"></script>
 <script src="js/profile.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/online.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
