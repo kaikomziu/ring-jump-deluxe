@@ -59,13 +59,25 @@
   .legend i{font-size:18px; font-style:normal}
 
   .hud{
-    position:absolute; top:0; left:0; right:0; padding:14px 16px;
-    display:flex; justify-content:space-between; align-items:flex-start;
-    font-weight:700; text-shadow:0 2px 6px rgba(0,0,0,.6); pointer-events:none;
+    position:absolute; top:0; left:0; right:0; padding:16px; z-index:20;
+    pointer-events:none;
   }
-  .hud .right{text-align:right}
-  .hud .big{font-size:30px; color:var(--accent)}
-  .hud .sub{font-size:12px; color:#dff3ff; font-weight:600}
+  .hud .scoreBig{
+    position:absolute; left:50%; top:14px; transform:translateX(-50%);
+    font:800 46px/1 system-ui, sans-serif; color:#fff;
+    -webkit-text-stroke:3px #241a10; paint-order:stroke fill;
+    text-shadow:0 4px 10px rgba(0,0,0,.35);
+  }
+  .hud .bestMiniWrap{
+    position:absolute; left:50%; top:66px; transform:translateX(-50%);
+    font-size:12px; color:#5a4326; font-weight:700; text-align:center;
+  }
+  .hud .bestMiniWrap b{color:#fff; -webkit-text-stroke:1.5px #241a10; paint-order:stroke fill}
+  #pauseBtn{
+    position:absolute; right:14px; top:14px; width:40px; height:40px; border-radius:50%;
+    border:none; background:rgba(36,26,16,.55); color:#fff; font-size:16px; cursor:pointer;
+    pointer-events:auto; z-index:21;
+  }
 
   .result-stat{font-size:15px; color:#dff3ff; line-height:2}
   .result-stat b{color:var(--accent); font-size:22px}
@@ -122,26 +134,21 @@
   <canvas id="game"></canvas>
 
   <div class="hud hidden" id="hud">
-    <div>
-      <div class="big"><span id="score">0</span></div>
-      <div class="sub">くぐった輪</div>
-    </div>
-    <div class="right">
-      <div class="big" id="bestBig">0</div>
-      <div class="sub">ベスト</div>
-    </div>
+    <div class="scoreBig"><span id="score">0</span></div>
+    <div class="bestMiniWrap">ベスト <b id="bestMini">0</b></div>
   </div>
+  <button class="hidden" id="pauseBtn">⏸</button>
 
   <!-- Title -->
   <div class="overlay" id="titleScreen">
     <h1>RING JUMP<small>輪くぐりジャンプ DELUXE</small></h1>
-    <p class="lead">キミは飛び跳ねるボール。<br>
+    <p class="lead">キミは羽の生えたボール。<br>
       タップ／クリック／スペースキーで羽ばたいて浮き、<br>放っておくと落ちていく。<br>
-      迫りくる輪の穴だけをくぐり抜けろ！</p>
+      宙に浮かぶ炎の輪の中心だけをくぐり抜けろ！</p>
     <div class="legend">
-      <span><i>🔴</i>キミ(ボール)</span>
-      <span><i>⭕</i>輪＝穴をくぐる</span>
-      <span><i>🟥</i>枠・天井・地面はアウト</span>
+      <span><i>🏀</i>キミ(ボール)</span>
+      <span><i>🔥</i>炎の輪＝中心をくぐる</span>
+      <span><i>💥</i>外すか天井/地面でアウト</span>
     </div>
     <button class="btn" id="startBtn">スタート</button>
     <div class="keys">PC: スペース／↑／クリックで連打して羽ばたく<br>スマホ: 画面を連打してタップで羽ばたく<br>輪のど真ん中を通すと「SWISH」でボーナス点！</div>
@@ -156,6 +163,15 @@
     <div class="btnrow">
       <button class="btn" id="retryBtn">もう一度</button>
       <button class="btn sub" id="titleBtn">タイトルへ</button>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div class="overlay hidden" id="pauseScreen">
+    <h1 style="font-size:32px">⏸ PAUSE</h1>
+    <div class="btnrow">
+      <button class="btn" id="resumeBtn">再開する</button>
+      <button class="btn sub" id="pauseTitleBtn">タイトルへ</button>
     </div>
   </div>
 
