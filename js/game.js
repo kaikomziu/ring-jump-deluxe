@@ -880,7 +880,7 @@
   function drawRing(r){
     const y = ringY(r);
     const squashY = 0.58;
-    const rimW = 17;
+    const rimW = 23;
     const midR = r.innerR + rimW*0.5 + 3;
 
     ctx.save();
@@ -921,31 +921,70 @@
       ctx.restore();
     }
 
-    // outer dark toon outline
+    // soft glow to lift the ring off the background (depth cue)
+    ctx.save();
     ctx.scale(1, squashY);
+    ctx.shadowColor = `hsla(${r.hue},95%,60%,.55)`;
+    ctx.shadowBlur = 22;
     ctx.beginPath();
     ctx.arc(0,0, midR, 0, Math.PI*2);
     ctx.lineWidth = rimW + 6;
-    ctx.strokeStyle = "rgba(60,20,10,.55)";
+    ctx.strokeStyle = "rgba(50,15,8,.6)";
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.scale(1, squashY);
+
+    // outer dark toon outline (no glow, crisp edge)
+    ctx.beginPath();
+    ctx.arc(0,0, midR, 0, Math.PI*2);
+    ctx.lineWidth = rimW + 6;
+    ctx.strokeStyle = "rgba(50,15,8,.6)";
     ctx.stroke();
 
-    // colored rim gradient
+    // colored tube gradient: bright highlight (near/top) -> saturated -> deep shadow (far/bottom)
     const rg = ctx.createLinearGradient(0,-midR,0,midR);
-    rg.addColorStop(0, `hsl(${r.hue},95%,68%)`);
-    rg.addColorStop(0.5, `hsl(${r.hue},90%,48%)`);
-    rg.addColorStop(1, `hsl(${r.hue},85%,32%)`);
+    rg.addColorStop(0,   `hsl(${r.hue},100%,88%)`);
+    rg.addColorStop(0.22,`hsl(${r.hue},95%,66%)`);
+    rg.addColorStop(0.55,`hsl(${r.hue},88%,44%)`);
+    rg.addColorStop(0.8, `hsl(${r.hue},80%,26%)`);
+    rg.addColorStop(1,   `hsl(${r.hue},70%,14%)`);
     ctx.beginPath();
     ctx.arc(0,0, midR, 0, Math.PI*2);
     ctx.lineWidth = rimW;
     ctx.strokeStyle = rg;
     ctx.stroke();
 
-    // bright highlight on the inner edge
+    // dark inner-edge shadow where the tube curves into the hole
     ctx.beginPath();
-    ctx.arc(0,0, r.innerR+3, 0, Math.PI*2);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = `hsla(${r.hue},100%,85%,.8)`;
+    ctx.arc(0,0, r.innerR+1, 0, Math.PI*2);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(30,10,5,.4)";
     ctx.stroke();
+
+    // bright highlight ring on the inner edge (top rim catching the light)
+    ctx.beginPath();
+    ctx.arc(0,0, r.innerR+4, 0, Math.PI*2);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = `hsla(${r.hue},100%,90%,.85)`;
+    ctx.stroke();
+
+    // glossy specular highlights (sell the round tube surface)
+    ctx.save();
+    ctx.scale(1, 1/squashY); // undo squash so the highlight blobs stay round-ish
+    for (const side of [-1, 1]){
+      const ang = side * 0.95; // near the upper sides of the ring
+      const hx = Math.cos(ang) * midR;
+      const hy = Math.sin(ang) * midR * squashY;
+      const hg = ctx.createRadialGradient(hx,hy,0, hx,hy, rimW*0.55);
+      hg.addColorStop(0, "rgba(255,255,255,.85)");
+      hg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = hg;
+      ctx.beginPath();
+      ctx.ellipse(hx, hy, rimW*0.5, rimW*0.22, ang, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
 
     ctx.restore();
   }

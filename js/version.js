@@ -1,6 +1,13 @@
 // RING JUMP DELUXE - version & changelog
-window.RINGJUMP_VERSION = "0.5.0";
+window.RINGJUMP_VERSION = "0.5.1";
 window.RINGJUMP_CHANGELOG = [
+  {
+    v: "0.5.1",
+    date: "2026-09-13",
+    items: [
+      "輪の立体感を強化。グラデーションの明暗差を強く、内側の影/ハイライトを追加、光沢のハイライトを2箇所追加、輪全体にグローを追加してより立体的なドーナツ形に見えるよう調整。",
+    ],
+  },
   {
     v: "0.5.0",
     date: "2026-09-13",
