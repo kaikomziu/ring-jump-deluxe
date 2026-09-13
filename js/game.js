@@ -65,15 +65,7 @@
   const ADMIN_KEY = "ringjump_admin_v1";
   const ADMIN_PASSWORD = "karubiwakame20151105";
   const ADMIN_TRIGGER = "admin";
-  const SKINS = [
-    { id: "default", label: "🏀", name: "バスケ" },
-    { id: "soccer", label: "⚽", name: "サッカー" },
-    { id: "eightball", label: "🎱", name: "エイトボール" },
-    { id: "globe", label: "🌍", name: "アース" },
-    { id: "alien", label: "👾", name: "エイリアン" },
-    { id: "disco", label: "✨", name: "レインボー" },
-    { id: "beach", label: "🏐", name: "ビーチボール" },
-  ];
+  const PROFILE = window.RJ_PROFILE;
 
   function loadAdmin(){
     let saved = {};
@@ -81,7 +73,6 @@
     return {
       unlocked: !!saved.unlocked,
       invincible: !!saved.invincible,
-      skin: saved.skin || "default",
       gravity: typeof saved.gravity === "number" ? saved.gravity : DEFAULT_GRAVITY,
       flapV: typeof saved.flapV === "number" ? saved.flapV : DEFAULT_FLAP_V,
       speedMul: typeof saved.speedMul === "number" ? saved.speedMul : 1,
@@ -101,6 +92,8 @@
   let bricks = [];
   let score = 0;
   let combo = 0;
+  let runSwishCount = 0;
+  let runBestCombo = 0;
   let best = Number(localStorage.getItem(BEST_KEY) || 0);
   let speed = 240;
   let spawnTimer = 0;
@@ -132,6 +125,17 @@
     pauseScreen: document.getElementById("pauseScreen"),
     resumeBtn: document.getElementById("resumeBtn"),
     pauseTitleBtn: document.getElementById("pauseTitleBtn"),
+    skinsBtn: document.getElementById("skinsBtn"),
+    skinScreen: document.getElementById("skinScreen"),
+    skinGrid: document.getElementById("skinGrid"),
+    skinsBackBtn: document.getElementById("skinsBackBtn"),
+    achBtn: document.getElementById("achBtn"),
+    achScreen: document.getElementById("achScreen"),
+    achList: document.getElementById("achList"),
+    achProgress: document.getElementById("achProgress"),
+    achBackBtn: document.getElementById("achBackBtn"),
+    achToast: document.getElementById("achToast"),
+    achToastName: document.getElementById("achToastName"),
   };
   els.bestMini.textContent = best;
 
@@ -167,6 +171,8 @@
     popups = [];
     score = 0;
     combo = 0;
+    runSwishCount = 0;
+    runBestCombo = 0;
     speed = 240;
     spawnTimer = 0;
     spawnGap = 1.7;
@@ -261,12 +267,16 @@
     const isNew = score > best;
     if (isNew){ best = score; localStorage.setItem(BEST_KEY, String(best)); }
     els.bestMini.textContent = best;
+    const newlyUnlocked = PROFILE.recordRun({
+      score, swishCount: runSwishCount, bestCombo: runBestCombo, playTime: elapsed,
+    });
     setTimeout(()=>{
       els.finalScore.textContent = score;
       els.finalBest.textContent = best;
       els.resultRank.textContent = ranks(score);
       els.newBestTag.classList.toggle("hidden", !isNew);
       els.resultScreen.classList.remove("hidden");
+      queueAchievementToasts(newlyUnlocked);
     }, 550);
   }
 
@@ -316,6 +326,77 @@
     els.pauseBtn.classList.add("hidden");
     els.titleScreen.classList.remove("hidden");
   });
+
+  // ---------- skins & achievements UI ----------
+  function buildSkinGrid(){
+    els.skinGrid.innerHTML = "";
+    const cur = PROFILE.getSkin();
+    PROFILE.SKINS.forEach(s=>{
+      const unlocked = PROFILE.isSkinUnlocked(s.id);
+      const card = document.createElement("div");
+      card.className = "skinCard" + (s.id===cur ? " active" : "") + (unlocked ? "" : " locked");
+      card.innerHTML = `<span class="emoji">${s.emoji}</span><span class="name">${s.name}</span>` +
+        (unlocked ? "" : `<div class="cond">🔒 ${s.condText}</div>`);
+      if (unlocked){
+        card.addEventListener("click", ()=>{
+          PROFILE.setSkin(s.id, false);
+          buildSkinGrid();
+        });
+      }
+      els.skinGrid.appendChild(card);
+    });
+  }
+  function buildAchList(){
+    const unlockedIds = PROFILE.getUnlockedIds();
+    els.achProgress.textContent = `達成 ${unlockedIds.length} / ${PROFILE.ACHIEVEMENTS.length}`;
+    els.achList.innerHTML = "";
+    PROFILE.ACHIEVEMENTS.forEach(a=>{
+      const done = unlockedIds.indexOf(a.id) !== -1;
+      const row = document.createElement("div");
+      row.className = "achRow" + (done ? " done" : " locked");
+      row.innerHTML = `<span class="icon">${done ? a.icon : "🔒"}</span>` +
+        `<div class="info"><div class="aname">${a.name}</div><div class="adesc">${a.desc}</div></div>`;
+      els.achList.appendChild(row);
+    });
+  }
+  els.skinsBtn.addEventListener("click", ()=>{
+    buildSkinGrid();
+    els.titleScreen.classList.add("hidden");
+    els.skinScreen.classList.remove("hidden");
+  });
+  els.skinsBackBtn.addEventListener("click", ()=>{
+    els.skinScreen.classList.add("hidden");
+    els.titleScreen.classList.remove("hidden");
+  });
+  els.achBtn.addEventListener("click", ()=>{
+    buildAchList();
+    els.titleScreen.classList.add("hidden");
+    els.achScreen.classList.remove("hidden");
+  });
+  els.achBackBtn.addEventListener("click", ()=>{
+    els.achScreen.classList.add("hidden");
+    els.titleScreen.classList.remove("hidden");
+  });
+
+  let toastQueue = [];
+  let toastShowing = false;
+  function queueAchievementToasts(list){
+    if (!list || !list.length) return;
+    toastQueue.push(...list);
+    if (!toastShowing) showNextToast();
+  }
+  function showNextToast(){
+    const a = toastQueue.shift();
+    if (!a){ toastShowing = false; return; }
+    toastShowing = true;
+    els.achToast.querySelector(".icon").textContent = a.icon;
+    els.achToastName.textContent = a.name;
+    els.achToast.classList.add("show");
+    setTimeout(()=>{
+      els.achToast.classList.remove("show");
+      setTimeout(showNextToast, 350);
+    }, 2400);
+  }
 
   // ---------- admin UI ----------
   const adminEls = {
@@ -388,14 +469,13 @@
 
   function buildSkinButtons(){
     adminEls.skins.innerHTML = "";
-    SKINS.forEach(s=>{
+    PROFILE.SKINS.forEach(s=>{
       const b = document.createElement("button");
-      b.textContent = s.label;
-      b.title = s.name;
-      b.className = admin.skin === s.id ? "active" : "";
+      b.textContent = s.emoji;
+      b.title = s.name + "(強制解放)";
+      b.className = PROFILE.getSkin() === s.id ? "active" : "";
       b.addEventListener("click", ()=>{
-        admin.skin = s.id;
-        saveAdmin();
+        PROFILE.setSkin(s.id, true); // admin bypasses unlock conditions
         buildSkinButtons();
       });
       adminEls.skins.appendChild(b);
@@ -514,6 +594,8 @@
           const swish = off < r.innerR*0.32;
           if (swish){
             combo++;
+            runSwishCount++;
+            runBestCombo = Math.max(runBestCombo, combo);
             score += 2;
             sfxSwish();
             popup(r.x, y, "SWISH! +2", `hsl(${r.hue},90%,68%)`);
@@ -755,7 +837,7 @@
     ctx.scale(1/Math.sqrt(squash), squash);
     ctx.rotate(rotTilt);
     drawWings(flapAmt);
-    drawBallFace(admin.skin);
+    drawBallFace(PROFILE.getSkin());
     ctx.restore();
   }
 
